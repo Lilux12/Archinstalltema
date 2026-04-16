@@ -1,0 +1,93 @@
+# ═══════════════════════════════════════════════════════════════
+#  Доступ к микроконтроллерам и программаторам без sudo
+#  Пользователь должен быть в группах: uucp, plugdev
+# ═══════════════════════════════════════════════════════════════
+
+# ── USB-UART мосты ──────────────────────────────────────────────
+
+# Silicon Labs CP210x (ESP32 DevKit, многие ESP8266)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="0666", GROUP="uucp", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea70", MODE="0666", GROUP="uucp", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea71", MODE="0666", GROUP="uucp", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea80", MODE="0666", GROUP="uucp", TAG+="uaccess"
+
+# WCH CH340/CH341 (дешёвые клоны Arduino Nano, многие ESP32 DevKit)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1a86", MODE="0666", GROUP="uucp", TAG+="uaccess"
+
+# FTDI (FT232, FT2232, FT4232, FT232H)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", MODE="0666", GROUP="uucp", TAG+="uaccess"
+
+# Prolific PL2303
+SUBSYSTEM=="usb", ATTRS{idVendor}=="067b", MODE="0666", GROUP="uucp", TAG+="uaccess"
+
+# ── Платформы разработки ────────────────────────────────────────
+
+# Arduino (Uno, Mega, Leonardo, Micro, Nano, Due, Zero, MKR)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2341", MODE="0666", GROUP="uucp", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2a03", MODE="0666", GROUP="uucp", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1b4f", MODE="0666", GROUP="uucp", TAG+="uaccess"
+
+# Espressif официальные VID (ESP32-S2/S3/C3 с нативным USB)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="303a", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Raspberry Pi Pico и RP2040 (BOOTSEL и runtime)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# STM32 (BOOT0, DFU, Virtual COM, ST-Link V1/V2/V2-1/V3)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Atmel / Microchip (AVRISP mkII, AVR Dragon, SAM-BA и т.д.)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="03eb", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# V-USB / Objective Development (USBasp, USBtinyISP и подобные)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="16c0", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# NXP / Freescale (LPC, Kinetis, i.MX RT — Teensy, MIMXRT)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1fc9", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="15a2", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0d28", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Nordic Semiconductor (nRF51/nRF52/nRF53 DK, J-Link on-board)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Texas Instruments (MSP430, CC2xxx, Launchpad)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0451", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2047", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Cypress / Infineon (PSoC)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="04b4", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Renesas (Synergy, RA, RX)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="045b", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# ── Программаторы и отладчики ───────────────────────────────────
+
+# SEGGER J-Link (все модели)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1366", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# OpenMoko / CMSIS-DAP / DAPLink / Black Magic Probe
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1d50", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# PicKit (Microchip)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="04d8", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Bus Pirate, Saleae Logic (FTDI-based обрабатывается выше)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Altera / Intel FPGA USB Blaster I/II
+SUBSYSTEM=="usb", ATTRS{idVendor}=="09fb", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Xilinx Platform Cable USB
+SUBSYSTEM=="usb", ATTRS{idVendor}=="03fd", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Lattice FPGA (HW-USBN-2B, iCEstick)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1443", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# ── Serial-устройства в /dev ────────────────────────────────────
+
+KERNEL=="ttyACM[0-9]*", MODE="0666", GROUP="uucp", TAG+="uaccess"
+KERNEL=="ttyUSB[0-9]*", MODE="0666", GROUP="uucp", TAG+="uaccess"
+KERNEL=="ttyS[0-9]*",   MODE="0666", GROUP="uucp", TAG+="uaccess"
+
+# HID для отладчиков с HID-интерфейсом (CMSIS-DAP, DAPLink)
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666", GROUP="plugdev", TAG+="uaccess"
