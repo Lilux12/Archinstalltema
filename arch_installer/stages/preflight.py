@@ -96,18 +96,16 @@ class PreflightStage(BaseStage):
                 f"{t('preflight.ram')}: {info.ram_gib:.1f} GiB"
             )
 
-        # Проверка 5: Свободное место в tmpfs
+        # Проверка 5: Свободное место в tmpfs (предупреждение, не критично —
+        # пакеты скачиваются на целевой диск, а не в tmpfs)
         self.ui.log_command(
             f"{t('preflight.space')}: {info.free_space_mib} MiB"
         )
         if info.free_space_mib < MIN_FREE_SPACE_MIB:
-            self.ui.log_error(
+            self.ui.log_warning(
                 f"{t('preflight.space')}: {info.free_space_mib} MiB "
-                f"(минимум {MIN_FREE_SPACE_MIB} MiB)"
-            )
-            raise PreflightError(
-                f"Недостаточно свободного места: {info.free_space_mib} MiB "
-                f"(требуется минимум {MIN_FREE_SPACE_MIB} MiB)."
+                f"(рекомендуется {MIN_FREE_SPACE_MIB} MiB, "
+                f"установка может работать медленнее)"
             )
         else:
             self.ui.log_success(
