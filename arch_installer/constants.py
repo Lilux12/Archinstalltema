@@ -131,7 +131,6 @@ DEV_PACKAGES: list[str] = [
     "libvirt",
     "edk2-ovmf",
     "dnsmasq",
-    "bridge-utils",
     "iptables-nft",
     # Контейнеризация
     "docker",
@@ -142,7 +141,7 @@ DEV_PACKAGES: list[str] = [
     "curl",
     "htop",
     "btop",
-    "neofetch",
+    "fastfetch",
     "unzip",
     "p7zip",
     "tar",
