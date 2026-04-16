@@ -1,0 +1,16 @@
+[Unit]
+Description=Weekly full system update (pacman + AUR)
+After=network-online.target
+Wants=network-online.target
+ConditionACPower=true
+
+[Service]
+Type=oneshot
+User=USERNAME_PLACEHOLDER
+ExecStart=/usr/bin/yay -Syu --noconfirm --devel --answerclean All --answerdiff None
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=2h
+
+[Install]
+WantedBy=multi-user.target
