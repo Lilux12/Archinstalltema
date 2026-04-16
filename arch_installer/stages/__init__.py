@@ -30,11 +30,11 @@ STAGE_ORDER: list[type[BaseStage]] = [
     BootloaderStage,    # 5 — Загрузчик
     MultilibStage,      # 6 — Multilib-репозиторий
     GnomeStage,         # 7 — Установка GNOME
-    NvidiaStage,        # 8 — Драйвер NVIDIA
-    NetworkStage,       # 9 — Сеть и DNS
-    DevToolsStage,      # 10 — Инструменты разработки
-    UdevRulesStage,     # 11 — Udev-правила микроконтроллеров
-    AurStage,           # 12 — AUR helper и авто-обновления
+    NetworkStage,       # 8 — Сеть и DNS
+    DevToolsStage,      # 9 — Инструменты разработки
+    UdevRulesStage,     # 10 — Udev-правила микроконтроллеров
+    AurStage,           # 11 — AUR helper и авто-обновления (до NVIDIA!)
+    NvidiaStage,        # 12 — Драйвер NVIDIA (через yay из AUR)
     VsCodeClaudeStage,  # 13 — VS Code и Claude Code
     FinalizeStage,      # 14 — Финализация
 ]

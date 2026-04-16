@@ -1,8 +1,11 @@
 """Установка проприетарного драйвера NVIDIA.
 
-Устанавливает пакеты NVIDIA, настраивает mkinitcpio
+Устанавливает пакеты NVIDIA через yay (AUR), настраивает mkinitcpio
 (модули, хуки), создаёт конфигурации modprobe,
 черный список nouveau и pacman-хук для обновлений.
+
+Для GTX 1050 Ti (Pascal/GP107) пакет nvidia доступен только в AUR,
+поэтому этот этап выполняется ПОСЛЕ установки yay.
 """
 
 from __future__ import annotations
@@ -12,7 +15,7 @@ import shutil
 import time
 from pathlib import Path
 
-from ..constants import MOUNT_POINT, NVIDIA_PACKAGES
+from ..constants import MOUNT_POINT
 from ..exceptions import StageError
 from ..utils.chroot import chroot_run, write_file_in_chroot
 from .base_stage import BaseStage
@@ -20,12 +23,29 @@ from .base_stage import BaseStage
 # Путь к ассетам проекта (относительно корня репозитория)
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
 
+# Пакеты NVIDIA — ставятся через yay (AUR)
+NVIDIA_CORE_PACKAGES = [
+    "nvidia",
+    "nvidia-utils",
+    "nvidia-settings",
+]
+
+NVIDIA_EXTRA_PACKAGES = [
+    "opencl-nvidia",
+]
+
+NVIDIA_LIB32_PACKAGES = [
+    "lib32-nvidia-utils",
+    "lib32-opencl-nvidia",
+]
+
 
 class NvidiaStage(BaseStage):
     """Этап установки драйвера NVIDIA.
 
-    Устанавливает проприетарный драйвер NVIDIA, настраивает
-    загрузку модулей в initramfs и блокирует nouveau.
+    Устанавливает проприетарный драйвер NVIDIA через yay (AUR),
+    настраивает загрузку модулей в initramfs и блокирует nouveau.
+    Запускается ПОСЛЕ этапа AUR (yay должен быть уже установлен).
     """
 
     name = "Драйвер NVIDIA"
@@ -43,26 +63,39 @@ class NvidiaStage(BaseStage):
             self._run_demo()
             return
 
-        # Синхронизация базы данных пакетов
-        self.ui.log_command("pacman -Sy")
-        chroot_run(["pacman", "-Sy", "--noconfirm"])
+        username = self.config.username
 
-        # Установка основных пакетов NVIDIA
-        core_packages = ["nvidia", "nvidia-utils", "nvidia-settings", "opencl-nvidia"]
-        self.ui.log_command(f"pacman -S --noconfirm {' '.join(core_packages)}")
-        chroot_run(["pacman", "-S", "--noconfirm"] + core_packages)
+        # Установка основных пакетов NVIDIA через yay
+        core = NVIDIA_CORE_PACKAGES
+        self.ui.log_command(f"yay -S --noconfirm {' '.join(core)}")
+        chroot_run(
+            f"su - {username} -c 'yay -S --noconfirm {' '.join(core)}'"
+        )
         self.ui.log_success("Основные пакеты NVIDIA установлены")
 
-        # Установка 32-битных пакетов (требуют multilib)
-        lib32_packages = ["lib32-nvidia-utils", "lib32-opencl-nvidia"]
-        self.ui.log_command(f"pacman -S --noconfirm {' '.join(lib32_packages)}")
-        try:
-            chroot_run(["pacman", "-S", "--noconfirm"] + lib32_packages)
-            self.ui.log_success("32-битные пакеты NVIDIA установлены")
-        except Exception:
-            self.ui.log_warning(
-                "lib32 пакеты NVIDIA не установлены (multilib может быть недоступен)"
-            )
+        # Дополнительные пакеты (opencl)
+        for pkg in NVIDIA_EXTRA_PACKAGES:
+            self.ui.log_command(f"yay -S --noconfirm {pkg}")
+            try:
+                chroot_run(
+                    f"su - {username} -c 'yay -S --noconfirm {pkg}'"
+                )
+                self.ui.log_success(f"{pkg} установлен")
+            except Exception:
+                self.ui.log_warning(f"{pkg} не установлен (пропуск)")
+
+        # 32-битные пакеты (требуют multilib)
+        for pkg in NVIDIA_LIB32_PACKAGES:
+            self.ui.log_command(f"yay -S --noconfirm {pkg}")
+            try:
+                chroot_run(
+                    f"su - {username} -c 'yay -S --noconfirm {pkg}'"
+                )
+                self.ui.log_success(f"{pkg} установлен")
+            except Exception:
+                self.ui.log_warning(
+                    f"{pkg} не установлен (multilib может быть недоступен)"
+                )
 
         # Добавление модулей NVIDIA в mkinitcpio.conf
         self._configure_mkinitcpio()
@@ -163,12 +196,11 @@ class NvidiaStage(BaseStage):
 
     def _run_demo(self) -> None:
         """Демонстрационный режим: имитация установки NVIDIA."""
-        packages_str = " ".join(NVIDIA_PACKAGES)
-        self.ui.log_command(f"pacman -S --noconfirm {packages_str}")
-        for i, pkg in enumerate(NVIDIA_PACKAGES, 1):
-            self.ui.log_command(f"  Установка {pkg} ({i}/{len(NVIDIA_PACKAGES)})")
+        all_pkgs = NVIDIA_CORE_PACKAGES + NVIDIA_EXTRA_PACKAGES + NVIDIA_LIB32_PACKAGES
+        for i, pkg in enumerate(all_pkgs, 1):
+            self.ui.log_command(f"yay -S --noconfirm {pkg}")
             time.sleep(0.3)
-        self.ui.log_success("Пакеты NVIDIA установлены")
+            self.ui.log_success(f"{pkg} установлен ({i}/{len(all_pkgs)})")
 
         self.ui.log_command("Настройка mkinitcpio.conf (MODULES и HOOKS)")
         time.sleep(0.3)
