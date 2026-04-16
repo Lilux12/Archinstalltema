@@ -92,20 +92,21 @@ def run_installer(config: InstallConfig) -> None:
         show_banner(console)
         wait_for_enter(console)
 
-        # Визард — заполняет конфигурацию
-        config = run_wizard(console, config)
-        set_lang(config.lang)
-
-        # Запускаем предварительные проверки (этап 0)
-        # PreflightStage определяет is_uefi и проверяет окружение
+        # Создаём UI прогресса
         progress_ui = ProgressUI(total_stages=TOTAL_STAGES)
         _progress_ui = progress_ui
 
         # Привязываем UI к модулю shell
         shell_mod.set_ui(progress_ui)
 
+        # Предварительные проверки (этап 0) — ДО визарда,
+        # чтобы определить is_uefi для отображения в сводке
         preflight = PreflightStage(config=config, ui=progress_ui)
         preflight.run()
+
+        # Визард — заполняет конфигурацию (использует config.is_uefi)
+        config = run_wizard(console, config)
+        set_lang(config.lang)
 
         logger.info(
             "Конфигурация: disk=%s, user=%s, uefi=%s",

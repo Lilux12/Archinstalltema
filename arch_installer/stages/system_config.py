@@ -172,8 +172,21 @@ class SystemConfigStage(BaseStage):
         self.ui.log_command("Запись /etc/sudoers.d/10-wheel")
         write_file_in_chroot("/etc/sudoers.d/10-wheel", sudoers_content)
 
+        # NOPASSWD для pacman и yay (удобство обновлений)
+        nopasswd_content = (
+            "## Разрешаем pacman и yay без пароля для группы wheel\n"
+            "%wheel ALL=(ALL) NOPASSWD: /usr/bin/pacman, /usr/bin/yay\n"
+        )
+        self.ui.log_command("Запись /etc/sudoers.d/20-pacman-nopasswd")
+        write_file_in_chroot("/etc/sudoers.d/20-pacman-nopasswd", nopasswd_content)
+
         # Устанавливаем корректные права (440)
         chroot_run(["chmod", "440", "/etc/sudoers.d/10-wheel"])
+        chroot_run(["chmod", "440", "/etc/sudoers.d/20-pacman-nopasswd"])
+
+        # Проверяем синтаксис sudoers
+        self.ui.log_command("visudo -c")
+        chroot_run(["visudo", "-c"])
         self.ui.log_success("sudo настроен для группы wheel")
 
     def _enable_network(self) -> None:
