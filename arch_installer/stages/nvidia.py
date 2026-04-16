@@ -43,11 +43,26 @@ class NvidiaStage(BaseStage):
             self._run_demo()
             return
 
-        # Установка пакетов NVIDIA
-        packages_str = " ".join(NVIDIA_PACKAGES)
-        self.ui.log_command(f"pacman -S --noconfirm {packages_str}")
-        chroot_run(["pacman", "-S", "--noconfirm"] + NVIDIA_PACKAGES)
-        self.ui.log_success("Пакеты NVIDIA установлены")
+        # Синхронизация базы данных пакетов
+        self.ui.log_command("pacman -Sy")
+        chroot_run(["pacman", "-Sy", "--noconfirm"])
+
+        # Установка основных пакетов NVIDIA
+        core_packages = ["nvidia", "nvidia-utils", "nvidia-settings", "opencl-nvidia"]
+        self.ui.log_command(f"pacman -S --noconfirm {' '.join(core_packages)}")
+        chroot_run(["pacman", "-S", "--noconfirm"] + core_packages)
+        self.ui.log_success("Основные пакеты NVIDIA установлены")
+
+        # Установка 32-битных пакетов (требуют multilib)
+        lib32_packages = ["lib32-nvidia-utils", "lib32-opencl-nvidia"]
+        self.ui.log_command(f"pacman -S --noconfirm {' '.join(lib32_packages)}")
+        try:
+            chroot_run(["pacman", "-S", "--noconfirm"] + lib32_packages)
+            self.ui.log_success("32-битные пакеты NVIDIA установлены")
+        except Exception:
+            self.ui.log_warning(
+                "lib32 пакеты NVIDIA не установлены (multilib может быть недоступен)"
+            )
 
         # Добавление модулей NVIDIA в mkinitcpio.conf
         self._configure_mkinitcpio()
