@@ -40,6 +40,11 @@ class BaseInstallStage(BaseStage):
         run(["timedatectl", "set-ntp", "true"])
         self.ui.log_success("NTP-синхронизация включена")
 
+        # Установка reflector (может отсутствовать в live-ISO)
+        self.ui.log_command("pacman -Sy --noconfirm reflector")
+        run(["pacman", "-Sy", "--noconfirm", "reflector"])
+        self.ui.log_success("reflector установлен")
+
         # Настройка зеркал через reflector для ускорения загрузки
         self.ui.log_command("reflector — выбор быстрых зеркал")
         run([

@@ -45,7 +45,7 @@ def show_banner(console: Console) -> None:
                 f"[dim]{subtitle_text}[/dim]"
             )
         ),
-        border_style="bold blue",
+        border_style=f"bold {ARCH_BLUE}",
         padding=(1, 4),
     )
     console.print(Align.center(info_panel, width=60))

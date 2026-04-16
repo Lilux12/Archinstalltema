@@ -167,9 +167,10 @@ def _stream_process(
                 # Пытаемся распарсить вывод pacman
                 _parse_pacman_output(line)
 
-                # Отправляем строку в UI
-                if _ui is not None and hasattr(_ui, "log"):
-                    _ui.log(f"[dim]{line}[/dim]")
+                # Отправляем строку в UI (экранируем Rich-разметку
+                # из вывода команды, чтобы [текст] не вызывал MarkupError)
+                if _ui is not None and hasattr(_ui, "log_info"):
+                    _ui.log_info(line)
 
     returncode = proc.wait()
 
