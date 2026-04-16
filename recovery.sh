@@ -8,7 +8,7 @@ set -o pipefail
 # ── Настройки ──────────────────────────────────────────────────
 OPENROUTER_KEY="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"
 AI_MODEL="nvidia/nemotron-3-super-120b-a12b:free"
-LOG_FILE="/tmp/arch_recovery.log"
+LOG_FILE="/var/log/arch_recovery.log"
 MAX_AI_RETRIES=3
 
 # Цвета
@@ -40,7 +40,7 @@ if [ -z "$REAL_USER" ]; then
     read -rp "Введите имя пользователя: " REAL_USER
 fi
 
-echo "" > "$LOG_FILE"
+: > "$LOG_FILE" 2>/dev/null || LOG_FILE="/tmp/arch_recovery_$$.log"
 header "Arch Linux Recovery — проверка и доустановка"
 log "Пользователь: $REAL_USER"
 log "Лог: $LOG_FILE"
@@ -50,7 +50,7 @@ ask_ai() {
     local question="$1"
     local response
 
-    response=$(curl -s -X POST "https://openrouter.ai/api/v1/chat/completions" \
+    response=$(curl -s --max-time 30 -X POST "https://openrouter.ai/api/v1/chat/completions" \
         -H "Authorization: Bearer $OPENROUTER_KEY" \
         -H "Content-Type: application/json" \
         -d "$(cat <<JSONEOF
@@ -103,7 +103,7 @@ install_pkg() {
         cmd="pacman -S --noconfirm --needed $pkg"
     fi
 
-    result=$($cmd 2>&1)
+    result=$(eval "$cmd" 2>&1)
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
