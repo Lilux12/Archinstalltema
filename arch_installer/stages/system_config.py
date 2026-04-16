@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 
 from ..constants import MOUNT_POINT, USER_GROUPS
@@ -31,7 +32,6 @@ class SystemConfigStage(BaseStage):
         Raises:
             StageError: При ошибке выполнения команд конфигурации.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()
@@ -69,9 +69,19 @@ class SystemConfigStage(BaseStage):
         self.ui.log_command(f"Раскомментирование {locale} в locale.gen")
         content = locale_gen_path.read_text(encoding="utf-8")
         # Раскомментируем и UTF-8 вариант
-        content = content.replace(f"#{locale} UTF-8", f"{locale} UTF-8")
+        content = re.sub(
+            rf"^#\s*({re.escape(locale)}\s+UTF-8)",
+            r"\1",
+            content,
+            flags=re.MULTILINE,
+        )
         # Также раскомментируем en_US.UTF-8 как fallback
-        content = content.replace("#en_US.UTF-8 UTF-8", "en_US.UTF-8 UTF-8")
+        content = re.sub(
+            r"^#\s*(en_US\.UTF-8\s+UTF-8)",
+            r"\1",
+            content,
+            flags=re.MULTILINE,
+        )
         locale_gen_path.write_text(content, encoding="utf-8")
 
         # Генерация локалей

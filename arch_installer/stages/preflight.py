@@ -35,7 +35,6 @@ class PreflightStage(BaseStage):
             PreflightError: Если система не удовлетворяет
                 минимальным требованиям.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()

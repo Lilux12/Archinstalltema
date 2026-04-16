@@ -89,6 +89,10 @@ def validate_password(password: str) -> tuple[bool, str]:
             f"(сейчас {len(password)})"
         )
 
+    # Проверка на управляющие символы (опасны для chpasswd и shell)
+    if any(c in password for c in "\n\r\0"):
+        return False, "Пароль не может содержать переносы строк или нулевые символы"
+
     return True, ""
 
 

@@ -156,6 +156,10 @@ class ProgressUI:
         self._packages_done: int = 0
         self._packages_total: int = 0
 
+        # Счётчик завершённых этапов и реальное кол-во этапов
+        self._completed_stages: int = 0
+        self._actual_total: int = 13  # этапы 2-14
+
         # Буфер строк лога (ограниченный deque)
         self._log_lines: deque[Text] = deque(maxlen=_MAX_LOG_LINES)
 
@@ -178,8 +182,10 @@ class ProgressUI:
             console: Rich-консоль. Если None, создаётся новая.
         """
         self._console = console or Console()
-        self._start_time = time.monotonic()
-        self._stage_start_time = self._start_time
+        # Не сбрасываем таймер при повторном запуске (retry после ошибки)
+        if self._start_time == 0.0:
+            self._start_time = time.monotonic()
+            self._stage_start_time = self._start_time
 
         self._live = Live(
             self._make_layout(),
@@ -194,6 +200,26 @@ class ProgressUI:
         if self._live is not None:
             self._live.stop()
             self._live = None
+
+    def get_elapsed(self) -> float:
+        """Получить прошедшее время с начала установки.
+
+        Returns:
+            Прошедшее время в секундах.
+        """
+        if self._start_time == 0.0:
+            return 0.0
+        return time.monotonic() - self._start_time
+
+    def log(self, msg: str) -> None:
+        """Добавить произвольную строку в журнал (для shell streaming).
+
+        Args:
+            msg: Текст для добавления (может содержать Rich-разметку).
+        """
+        line = Text.from_markup(f"  {msg}")
+        self._log_lines.append(line)
+        self._refresh()
 
     # ─── Обновление состояния ───────────────────────────────
 
@@ -280,6 +306,11 @@ class ProgressUI:
         self._log_lines.append(line)
         self._refresh()
 
+    def mark_stage_completed(self) -> None:
+        """Отметить текущий этап как завершённый."""
+        self._completed_stages += 1
+        self._refresh()
+
     def update_operation(self, op: str) -> None:
         """Обновить текст текущей операции.
 
@@ -328,12 +359,10 @@ class ProgressUI:
         Returns:
             Процент от 0.0 до 100.0.
         """
-        if self.total_stages == 0:
+        if self._completed_stages == 0:
             return 0.0
-        # Каждый завершённый этап — полный вклад; текущий — частичный
-        # Текущий этап считаем начатым, но не завершённым
-        completed = max(0, self._current_stage - 1)
-        return (completed / self.total_stages) * 100.0
+        # Процент на основе фактически завершённых этапов
+        return min(100.0, (self._completed_stages / self._actual_total) * 100.0)
 
     def _calc_eta(self, elapsed: float, percent: float) -> float:
         """Рассчитать оставшееся время (ETA).

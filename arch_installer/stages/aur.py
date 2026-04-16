@@ -38,7 +38,6 @@ class AurStage(BaseStage):
         Raises:
             StageError: При ошибке сборки yay или настройки таймера.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()

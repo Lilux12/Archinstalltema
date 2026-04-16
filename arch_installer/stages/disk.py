@@ -32,7 +32,6 @@ class DiskStage(BaseStage):
         Raises:
             StageError: При ошибке разметки или монтирования.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()

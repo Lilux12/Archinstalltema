@@ -34,7 +34,6 @@ class FinalizeStage(BaseStage):
         Raises:
             StageError: При критической ошибке финализации.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()

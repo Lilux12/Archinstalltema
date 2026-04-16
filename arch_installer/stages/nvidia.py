@@ -38,7 +38,6 @@ class NvidiaStage(BaseStage):
         Raises:
             StageError: При ошибке установки или конфигурации.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()
@@ -76,19 +75,32 @@ class NvidiaStage(BaseStage):
 
         # Добавляем модули NVIDIA в строку MODULES
         nvidia_modules = "nvidia nvidia_modeset nvidia_uvm nvidia_drm"
+
+        def _replace_modules(m: re.Match[str]) -> str:
+            """Вставить nvidia-модули в MODULES=(...)."""
+            existing = m.group(1).strip()
+            if existing:
+                return f"MODULES=({existing} {nvidia_modules})"
+            return f"MODULES=({nvidia_modules})"
+
         content = re.sub(
-            r'^(MODULES=\()([^)]*)\)',
-            rf'\1\2 {nvidia_modules})',
+            r'^MODULES=\(([^)]*)\)',
+            _replace_modules,
             content,
             flags=re.MULTILINE,
         )
-        # Убираем двойные пробелы, если MODULES были пустыми
-        content = content.replace("( ", "(")
 
-        # Удаляем kms из HOOKS (несовместим с NVIDIA)
+        # Удаляем kms из HOOKS (несовместим с NVIDIA) и нормализуем пробелы
+        def _remove_kms(m: re.Match[str]) -> str:
+            """Удалить kms из списка HOOKS."""
+            hooks = m.group(1)
+            hooks = re.sub(r'\bkms\b', '', hooks)
+            hooks = re.sub(r'\s+', ' ', hooks).strip()
+            return f"HOOKS=({hooks})"
+
         content = re.sub(
-            r'^(HOOKS=\([^)]*)\bkms\b\s*',
-            r'\1',
+            r'^HOOKS=\(([^)]*)\)',
+            _remove_kms,
             content,
             flags=re.MULTILINE,
         )
@@ -104,6 +116,7 @@ class NvidiaStage(BaseStage):
             "# Включаем модесеттинг NVIDIA для Wayland и DRM\n"
             "options nvidia_drm modeset=1\n"
             "options nvidia_drm fbdev=1\n"
+            "options nvidia NVreg_PreserveVideoMemoryAllocations=1\n"
         )
         self.ui.log_command("Запись /etc/modprobe.d/nvidia.conf")
         write_file_in_chroot("/etc/modprobe.d/nvidia.conf", nvidia_conf)

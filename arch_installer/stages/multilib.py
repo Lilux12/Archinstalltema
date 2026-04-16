@@ -33,7 +33,6 @@ class MultilibStage(BaseStage):
             StageError: При ошибке редактирования pacman.conf
                 или обновления базы.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()
@@ -47,16 +46,23 @@ class MultilibStage(BaseStage):
         content = pacman_conf.read_text(encoding="utf-8")
 
         # Регулярное выражение для раскомментирования блока [multilib]
-        # Ищем закомментированный блок:
+        # Ищем закомментированный блок (может быть #SigLevel между строками):
         # #[multilib]
+        # #SigLevel = ...  (опционально)
         # #Include = /etc/pacman.d/mirrorlist
-        content = re.sub(
-            r"#\s*\[multilib\]\s*\n#\s*Include\s*=\s*/etc/pacman\.d/mirrorlist",
+        new_content = re.sub(
+            r"#\s*\[multilib\]\s*\n(?:#[^\n]*\n)*#\s*Include\s*=\s*/etc/pacman\.d/mirrorlist",
             "[multilib]\nInclude = /etc/pacman.d/mirrorlist",
             content,
         )
 
-        pacman_conf.write_text(content, encoding="utf-8")
+        if new_content == content:
+            self.ui.log_warning(
+                "[multilib] не найден в pacman.conf — добавляем вручную"
+            )
+            new_content += "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n"
+
+        pacman_conf.write_text(new_content, encoding="utf-8")
         self.ui.log_success("[multilib] раскомментирован в pacman.conf")
 
         # Обновление базы данных пакетов

@@ -42,5 +42,6 @@ INSTALLER_THEME = Theme(
         "command": STYLE_COMMAND,
         "header": STYLE_HEADER,
         "info": Style(color=TEXT_WHITE),
+        "arch_blue": Style(color=ARCH_BLUE),
     }
 )

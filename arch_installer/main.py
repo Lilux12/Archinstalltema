@@ -19,6 +19,7 @@ from .constants import LOG_FILE, MOUNT_POINT, TOTAL_STAGES
 from .exceptions import InstallerError, StageError, UserAbort
 from .i18n import set_lang, t
 from .stages import STAGE_ORDER
+from .stages.preflight import PreflightStage
 from .ui.banner import show_banner, wait_for_enter
 from .ui.error_screen import show_error_screen
 from .ui.progress import ProgressUI
@@ -32,6 +33,9 @@ if TYPE_CHECKING:
     from .stages.base_stage import BaseStage
 
 logger = logging.getLogger(__name__)
+
+# Ссылка на ProgressUI для signal handler
+_progress_ui: ProgressUI | None = None
 
 
 def _cleanup_mounts() -> None:
@@ -48,6 +52,10 @@ def _cleanup_mounts() -> None:
 
 def _signal_handler(signum: int, frame: object) -> None:
     """Обработка Ctrl+C — корректный выход с откатом."""
+    global _progress_ui
+    # Останавливаем Live-дисплей перед выводом
+    if _progress_ui is not None:
+        _progress_ui.stop()
     _cleanup_mounts()
     console = Console(theme=INSTALLER_THEME)
     console.print("\n[warning]Установка прервана пользователем.[/warning]")
@@ -62,6 +70,8 @@ def run_installer(config: InstallConfig) -> None:
         config: Конфигурация с начальными параметрами
                 (demo_mode, debug, lang).
     """
+    global _progress_ui
+
     # Устанавливаем обработчик сигналов
     signal.signal(signal.SIGINT, _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
@@ -86,23 +96,30 @@ def run_installer(config: InstallConfig) -> None:
         config = run_wizard(console, config)
         set_lang(config.lang)
 
-        logger.info("Конфигурация: disk=%s, user=%s, uefi=%s", config.disk, config.username, config.is_uefi)
-
-        # Создаём UI прогресса
+        # Запускаем предварительные проверки (этап 0)
+        # PreflightStage определяет is_uefi и проверяет окружение
         progress_ui = ProgressUI(total_stages=TOTAL_STAGES)
+        _progress_ui = progress_ui
 
         # Привязываем UI к модулю shell
         shell_mod.set_ui(progress_ui)
+
+        preflight = PreflightStage(config=config, ui=progress_ui)
+        preflight.run()
+
+        logger.info(
+            "Конфигурация: disk=%s, user=%s, uefi=%s",
+            config.disk, config.username, config.is_uefi,
+        )
 
         # Создаём экземпляры этапов
         stages: list[BaseStage] = []
         for stage_cls in STAGE_ORDER:
             stages.append(stage_cls(config=config, ui=progress_ui))
 
-        # Запускаем все этапы
-        progress_ui.start()
+        # Запускаем все этапы с Live-дисплеем
+        progress_ui.start(console)
 
-        completed_stages = 0
         elapsed_total = 0.0
 
         try:
@@ -116,7 +133,7 @@ def run_installer(config: InstallConfig) -> None:
                 while True:
                     try:
                         stage.run()
-                        completed_stages += 1
+                        progress_ui.mark_stage_completed()
                         logger.info("Этап %d завершён: %s", stage_num, stage_name)
                         break
 
@@ -139,11 +156,12 @@ def run_installer(config: InstallConfig) -> None:
 
                         if action == "retry":
                             logger.info("Повтор этапа %d", stage_num)
-                            progress_ui.start()
+                            progress_ui.start(console)
                             continue
                         elif action == "skip":
                             logger.warning("Этап %d пропущен", stage_num)
-                            progress_ui.start()
+                            progress_ui.mark_stage_completed()
+                            progress_ui.start(console)
                             break
                         else:  # abort
                             raise UserAbort("Пользователь прервал установку")
@@ -152,7 +170,7 @@ def run_installer(config: InstallConfig) -> None:
             elapsed_total = progress_ui.get_elapsed()
             progress_ui.stop()
 
-        # Финальный экран
+        # Финальный экран (stats уже собраны в FinalizeStage до umount)
         package_count = _get_package_count(config)
         system_size = _get_system_size(config)
 
@@ -200,36 +218,24 @@ def _read_last_log_lines(n: int) -> list[str]:
 
 
 def _get_package_count(config: InstallConfig) -> int:
-    """Получить количество установленных пакетов."""
+    """Получить количество установленных пакетов.
+
+    Примечание: вызывается после umount, поэтому для реальной
+    установки возвращает 0 (статистику собирает FinalizeStage до umount).
+    В демо-режиме возвращает фиктивное значение.
+    """
     if config.demo_mode:
         return 1247
-
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["arch-chroot", str(MOUNT_POINT), "pacman", "-Q"],
-            capture_output=True,
-            text=True,
-        )
-        return len(result.stdout.strip().splitlines())
-    except Exception:
-        return 0
+    return 0
 
 
 def _get_system_size(config: InstallConfig) -> str:
-    """Получить размер установленной системы."""
+    """Получить размер установленной системы.
+
+    Примечание: вызывается после umount, поэтому для реальной
+    установки возвращает N/A (статистику выводит FinalizeStage).
+    В демо-режиме возвращает фиктивное значение.
+    """
     if config.demo_mode:
         return "8.3 GiB"
-
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["du", "-sh", str(MOUNT_POINT)],
-            capture_output=True,
-            text=True,
-        )
-        return result.stdout.split()[0]
-    except Exception:
-        return "N/A"
+    return "N/A"

@@ -30,18 +30,18 @@ class BootloaderStage(BaseStage):
         Raises:
             StageError: При ошибке установки загрузчика.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()
             return
 
         # Установка пакетов загрузчика
-        self.ui.log_command("pacman -S --noconfirm grub efibootmgr os-prober")
-        chroot_run([
-            "pacman", "-S", "--noconfirm",
-            "grub", "efibootmgr", "os-prober",
-        ])
+        packages = ["grub", "os-prober"]
+        if self.config.is_uefi:
+            packages.append("efibootmgr")
+        packages_str = " ".join(packages)
+        self.ui.log_command(f"pacman -S --noconfirm {packages_str}")
+        chroot_run(["pacman", "-S", "--noconfirm"] + packages)
         self.ui.log_success("Пакеты загрузчика установлены")
 
         if self.config.is_uefi:

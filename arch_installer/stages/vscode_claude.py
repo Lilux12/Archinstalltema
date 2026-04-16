@@ -34,7 +34,6 @@ class VsCodeClaudeStage(BaseStage):
         Raises:
             StageError: При ошибке установки пакетов.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()

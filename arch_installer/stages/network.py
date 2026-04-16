@@ -32,7 +32,6 @@ class NetworkStage(BaseStage):
         Raises:
             StageError: При ошибке конфигурации сети.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()
@@ -58,7 +57,7 @@ class NetworkStage(BaseStage):
         dns_conf = (
             "# Пользовательские DNS-серверы\n"
             "[global-dns-domain-*]\n"
-            f"servers={','.join(ipv4_servers + ipv6_servers)}\n"
+            f"servers={';'.join(ipv4_servers + ipv6_servers)};\n"
         )
 
         conf_dir = "/etc/NetworkManager/conf.d"

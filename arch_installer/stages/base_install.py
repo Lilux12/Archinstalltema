@@ -30,7 +30,6 @@ class BaseInstallStage(BaseStage):
         Raises:
             StageError: При ошибке установки пакетов.
         """
-        self.ui.set_stage(self.name)
 
         if self.config.demo_mode:
             self._run_demo()
@@ -67,8 +66,7 @@ class BaseInstallStage(BaseStage):
             stream_to_ui=False,
         )
         fstab_path = MOUNT_POINT / "etc" / "fstab"
-        with fstab_path.open("a", encoding="utf-8") as f:
-            f.write(result.stdout)
+        fstab_path.write_text(result.stdout, encoding="utf-8")
         self.ui.log_success("fstab сгенерирован")
 
     def _run_demo(self) -> None:

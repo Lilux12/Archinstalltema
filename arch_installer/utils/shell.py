@@ -90,25 +90,27 @@ def _parse_pacman_output(line: str) -> None:
     if _ui is None:
         return
 
-    # Общее количество пакетов
+    # Общее количество пакетов — запоминаем для update_packages
     match_total = _RE_PACMAN_TOTAL.search(line)
-    if match_total and hasattr(_ui, "set_total_packages"):
+    if match_total:
         total = int(match_total.group(1))
-        _ui.set_total_packages(total)
+        if hasattr(_ui, "update_packages"):
+            _ui.update_packages(0, total)
 
     # Прогресс (N/M)
     match_progress = _RE_PACMAN_PROGRESS.search(line)
-    if match_progress and hasattr(_ui, "update_progress"):
+    if match_progress:
         current = int(match_progress.group(1))
         total = int(match_progress.group(2))
-        _ui.update_progress(current, total)
+        if hasattr(_ui, "update_packages"):
+            _ui.update_packages(current, total)
 
     # Имя устанавливаемого пакета
     match_install = _RE_PACMAN_INSTALLING.search(line)
-    if match_install and hasattr(_ui, "set_current_package"):
+    if match_install:
         pkg_name = match_install.group(1)
-        pkg_version = match_install.group(2)
-        _ui.set_current_package(pkg_name, pkg_version)
+        if hasattr(_ui, "update_operation"):
+            _ui.update_operation(f"Установка {pkg_name}")
 
 
 def _stream_process(
@@ -244,8 +246,8 @@ def run(
         # Берём последние строки вывода для контекста ошибки
         tail = "\n".join(error_output.strip().splitlines()[-10:])
         raise StageError(
-            f"Команда завершилась с ошибкой (код {result.returncode}): "
-            f"{cmd_str}\n{tail}"
+            cmd_str,
+            f"Команда завершилась с ошибкой (код {result.returncode}):\n{tail}",
         )
 
     return result

@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from rich.align import Align
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -133,24 +133,16 @@ def show_final_screen(
     ready_line.append(f"\n  {SYM_DIAMOND} ", style=MUTED_GRAY)
     ready_line.append(t("final.ready"), style=MUTED_GRAY)
 
-    # Собираем содержимое панели
-    content = Text()
-    content.append_text(title_line)
-    content.append("\n\n")
-
-    # Главная панель с зелёной рамкой
+    # Собираем содержимое панели через Group (поддерживает Table)
     panel = Panel(
-        Align.left(
-            Text.assemble(
-                title_line,
-                "\n\n",
-                stats_table,
-                "\n\n",
-                ready_line,
-                "\n\n",
-                buttons_line,
-                "\n",
-            )
+        Group(
+            title_line,
+            Text(""),
+            stats_table,
+            Text(""),
+            ready_line,
+            Text(""),
+            buttons_line,
         ),
         border_style=f"bold {SUCCESS_GREEN}",
         padding=(1, 3),
